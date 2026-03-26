@@ -57,7 +57,8 @@ void loop() {
   if (int_score >= 100) {
     lcd.clear();
     printCenter(1, "You Win!!!");
-    while (true) {}
+    int_score=0;
+    lcd.clear();
   }
 }
 
