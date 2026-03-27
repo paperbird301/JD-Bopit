@@ -1,51 +1,61 @@
-const int TRIG_PIN = 10;
-const int ECHO_PIN = 9;
+#include <LiquidCrystal_I2C.h>
+#include <NewPing.h>
+
+const int triggerPin = 7;
+const int echoPin = 8;
+const int maxDistance = 50;
+
+NewPing sonar(triggerPin, echoPin, maxDistance);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+float cm;
+float inches;
+int score;
+bool locked = false;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  digitalWrite(TRIG_PIN, LOW);
-  delay(500);
-}
-
-long getEchoDuration() {
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(4);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
-
-  unsigned long start = micros();
-  while (digitalRead(ECHO_PIN) == LOW) {
-    if (micros() - start > 10000) return -1;
-  }
-
-  unsigned long echoStart = micros();
-  while (digitalRead(ECHO_PIN) == HIGH) {
-    if (micros() - echoStart > 100000) return -2;
-  }
-
-  return micros() - echoStart;
+  lcd.init();
+  lcd.backlight();
+  lcd.print("-> GAME START <-");
+  delay(1000);
+  lcd.clear();
 }
 
 void loop() {
-  long duration = getEchoDuration();
-  Serial.print("Raw: ");
-  Serial.println(duration);
+  unsigned int duration = sonar.ping();
 
-  if (duration == -1) {
-    Serial.println("No echo received (check wiring)");
-  } else if (duration == -2) {
-    Serial.println("Object too far (>4m)");
-  } else {
-    float distance_cm = duration * 0.0343 / 2.0;
-    Serial.print("Duration: ");
-    Serial.print(duration);
-    Serial.print(" us  |  Distance: ");
-    Serial.print(distance_cm, 1);
-    Serial.println(" cm");
+  cm = sonar.convert_cm(duration);
+  inches = cm / 2.54;
+
+  Serial.print("Duration: ");
+  Serial.print(duration);
+  Serial.print(" us  |  Distance: ");
+  Serial.print(cm, 1);
+  Serial.println(" cm");
+
+  if (cm < 5.0 && !locked && duration != 0) {
+    // Object just came close — score and lock
+    locked = true;
+    score++;
+    lcd.clear();
+    printScore();
+  } 
+  else if (cm >= 5.0 && locked) {
+    // Object moved away — unlock so next pass can score
+    locked = false;
+    printScore();  // keep score visible after unlock
   }
-
-  delay(100);
+delay(100);
+}
+void printScore() {
+  printCenter(1, "Score");
+  String cur_score = String(score);
+  printCenter(2, cur_score);
+}
+void printCenter(int row, String text) {
+  int col = (16 - text.length()) / 2;  // 16 is the LCD width
+  if (col < 0) col = 0;                // Avoid negative index if text is too long
+  lcd.setCursor(col, row - 1);         // row-1 because LCD rows start at 0
+  lcd.print(text);
 }
