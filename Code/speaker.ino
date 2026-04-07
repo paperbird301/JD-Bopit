@@ -11,8 +11,9 @@ void setup() {
   delay(500);
   setVolume(5);
   delay(500);
-  execute_CMD(0x11, 0, 1);  // loop all tracks
-  delay(500);
+  playTrack(1, 10000);
+  playTrack(2, 45000);
+  playTrack(1, 30000);
 }
 
 void loop() {
@@ -35,4 +36,9 @@ void execute_CMD(byte CMD, byte Par1, byte Par2) {
   for (byte k = 0; k < 10; k++) {
     Serial.write(Command_line[k]);
   }
+}
+
+void playTrack(int track, unsigned long duration) {
+  execute_CMD(0x03, 0, track);
+  delay(duration);  // wait for track to finish
 }
