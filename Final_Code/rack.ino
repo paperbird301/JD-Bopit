@@ -36,6 +36,7 @@ void runRack() {
     lcd.clear();
     printCenter(1, "Too slow");
     printCenter(2, "Score: " + String(score));
+    delay(1000);
     return;
   }
 
