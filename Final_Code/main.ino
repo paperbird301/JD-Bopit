@@ -41,8 +41,8 @@ void setup() {
   delay(1000);
   setVolume(10);
   delay(500);
-  execute_CMD(0x03, 0, 4);  //play backing track 4
-  delay(2000);
+  execute_CMD(0x03, 0, 2);  //play backing track 4
+  delay(1000);
 
   //oled
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
@@ -85,7 +85,6 @@ void loop() {
       delay(700);
       lcd.clear();
       start = true;
-      execute_CMD(0x0E, 0, 2);  //stop
     }
   }
 
@@ -98,17 +97,14 @@ void loop() {
 
   int game = random(3);  //Game 3 (WIP)
   if (game == 0) {
-    execute_CMD(0x03, 0, 1);  //play track 1
+    execute_CMD(0x03, 0, 3);  //play track 1
     runChalk();
-    execute_CMD(0x0E, 0, 2);  //stop
   } else if (game == 1) {
-    execute_CMD(0x03, 0, 2);  //play track 2
+    execute_CMD(0x03, 0, 5);  //play track 2
     runRack();
-    execute_CMD(0x0E, 0, 2);  //stop
   } else {
-    execute_CMD(0x03, 0, 3);  //play track 3
+    execute_CMD(0x03, 0, 4);  //play track 3
     runStick();
-    execute_CMD(0x0E, 0, 2);  //stop
   }
 }
 

@@ -4,12 +4,12 @@ extern int score;
 extern int game_delay;
 extern LiquidCrystal_I2C lcd;
 
-#define TRIGGER_PIN 1
-#define ECHO_PIN 0
-#define MAX_DISTANCE 50 
+#define TRIGGER_PIN 22
+#define ECHO_PIN 23
+#define MAX_DISTANCE 20.0 
 
-#define RACK_UP_CM 10.0   // lift threshold
-#define RACK_DOWN_CM 5.0  // to avoid deadzone
+#define RACK_UP_CM 12.0   // lift threshold
+#define RACK_DOWN_CM 4.0  // lower threshold
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
@@ -25,8 +25,9 @@ void runRack() {
   while (millis() < deadline) {
     drawFrame(1);
 
-    float cm = sonar.ping_cm();
-    if (cm > RACK_UP_CM && cm != 0) {
+    float cm = sonar.ping_median(10); // average of 5 pings
+    cm = sonar.convert_cm(cm);
+    if (cm > RACK_UP_CM && cm <= MAX_DISTANCE) {
       lifted = true;
       break;
     }
@@ -36,6 +37,7 @@ void runRack() {
     lcd.clear();
     printCenter(1, "Too slow");
     printCenter(2, "Score: " + String(score));
+    delay(1000);
     return;
   }
 
@@ -47,14 +49,15 @@ void runRack() {
   while (millis() < deadline) {
     drawFrame(1);
 
-    float cm = sonar.ping_cm();
+    float cm = sonar.ping_median(10); // average of 5 pings
+    cm = sonar.convert_cm(cm);
     if (cm < RACK_DOWN_CM && cm != 0) {
       lowered = true;
       break;
     }
   }
 
-  if (lowered) {
+  if (lifted&&lowered) {
     score++;
     lcd.clear();
     printCenter(1, "Score:");
