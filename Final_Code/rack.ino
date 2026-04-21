@@ -4,8 +4,8 @@ extern int score;
 extern int game_delay;
 extern LiquidCrystal_I2C lcd;
 
-#define TRIGGER_PIN 22
-#define ECHO_PIN 23
+#define TRIGGER_PIN 15
+#define ECHO_PIN 0
 #define MAX_DISTANCE 20.0 
 
 #define RACK_UP_CM 12.0   // lift threshold
@@ -37,7 +37,7 @@ void runRack() {
     lcd.clear();
     printCenter(1, "Too slow");
     printCenter(2, "Score: " + String(score));
-    delay(1000);
+    lost=true;
     return;
   }
 
@@ -59,6 +59,7 @@ void runRack() {
 
   if (lifted&&lowered) {
     score++;
+    execute_CMD(0x03, 0, 7);  //play score+ audio
     lcd.clear();
     printCenter(1, "Score:");
     printCenter(2, String(score));
@@ -66,6 +67,7 @@ void runRack() {
     lcd.clear();
     printCenter(1, "Too slow");
     printCenter(2, "Score: " + String(score));
+    lost=true;
   }
 
   long showUntil = millis() + 1000;

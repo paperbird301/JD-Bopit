@@ -17,13 +17,12 @@ void runStick() {
     drawFrame(2);
 
     //wait for pull
-    if (!pulled && digitalRead(4) == LOW) {
+    if (!pulled && digitalRead(13) == HIGH) {
       pulled = true;
     }
 
     //wait for release
-    if (pulled && digitalRead(4) == HIGH) {
-      score++;
+    if (pulled && digitalRead(13) == LOW) {
       passed = true;
       break;
     }
@@ -31,11 +30,14 @@ void runStick() {
 
   lcd.clear();
   if (passed) {
+    score++;
+    execute_CMD(0x03, 0, 7);  //play score+ audio
     printCenter(1, "Score:");
     printCenter(2, String(score));
   } else {
     printCenter(1, "Too slow");
     printCenter(2, "Score: " + String(score));
+    lost=true;
   }
 
   long showUntil = millis() + 1000;

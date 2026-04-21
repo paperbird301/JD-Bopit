@@ -1,5 +1,6 @@
 extern int score;
 extern int game_delay;
+extern bool lost;
 extern LiquidCrystal_I2C lcd;
 
 void runChalk() {
@@ -24,6 +25,7 @@ void runChalk() {
 
   if (lower_lim <= target && target <= upper_lim) {
     score++;
+    execute_CMD(0x03, 0, 7);  //play score+ audio
     lcd.clear();
     printCenter(1, "Score:");
     printCenter(2, String(score));
@@ -31,6 +33,7 @@ void runChalk() {
     lcd.clear();
     printCenter(1, "Miss!");
     printCenter(2, "Score: " + String(score));
+    lost=true;
   }
 
   //show result for 1 sec

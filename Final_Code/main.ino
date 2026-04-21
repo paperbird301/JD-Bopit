@@ -32,6 +32,7 @@ int score = 0;
 int game_delay = 5000;
 bool challenge_mode;  // maybe if time
 bool start = false;
+bool lost = false;
 
 void setup() {
   Serial.begin(9600);
@@ -41,7 +42,7 @@ void setup() {
   delay(1000);
   setVolume(10);
   delay(500);
-  execute_CMD(0x03, 0, 2);  //play backing track 4
+  execute_CMD(0x08, 0, 2);  //loop backing track 4
   delay(1000);
 
   //oled
@@ -54,11 +55,11 @@ void setup() {
 
   //start button
   pinMode(A0, INPUT);
-  pinMode(3, INPUT_PULLUP);
+  pinMode(12, INPUT_PULLUP);
 
   //stick button
   pinMode(A1, INPUT);
-  pinMode(4, INPUT_PULLUP);
+  pinMode(13, INPUT_PULLUP);
 
   // Entropy-based random seed from claude
   long seed = 0;
@@ -76,7 +77,7 @@ void setup() {
 void loop() {
   while (!start) {
     printCenter(1, "Press Start");
-    if (digitalRead(3) == HIGH) {
+    if (digitalRead(12) == LOW) {
       printCenter(2, "3");
       delay(700);
       printCenter(2, "2");
@@ -95,28 +96,67 @@ void loop() {
 
   game_delay = max(1000, 5000 - score * 30);  // currently set to 5 sec -> 2 sec
 
-  int game = random(3);  //Game 3 (WIP)
+  int game = random(3);
+  losecheck();
   if (game == 0) {
-    execute_CMD(0x03, 0, 3);  //play track 1
+    execute_CMD(0x03, 0, 3);  //play chalk it
     runChalk();
   } else if (game == 1) {
-    execute_CMD(0x03, 0, 5);  //play track 2
+    execute_CMD(0x03, 0, 5);  //play rack it
     runRack();
   } else {
-    execute_CMD(0x03, 0, 4);  //play track 3
+    execute_CMD(0x03, 0, 4);  //play pull it
     runStick();
   }
 }
 
 void winScreen() {
   lcd.clear();
+  execute_CMD(0x03, 0, 1);  //play yippie
   printCenter(1, "YOU WIN!!!");
-  String cur_score = String(score);
+  String cur_score = "Score: " + String(score);
   printCenter(2, cur_score);
+  
+  delay(5000);
+  execute_CMD(0x08, 0, 2);  //loop backing track 4
+  lcd.clear();
+  printCenter(1, "Press START");
+  printCenter(2, "to reset");
+
   // Halt forever
   while (true) {
     drawFrame(3);
+    if (digitalRead(12) == LOW) 
+      softReset();
   }
+}
+
+void losecheck() {
+  if (lost == true) {
+    lcd.clear();
+    execute_CMD(0x03, 0, 6);  //play lose audio
+    printCenter(1, "GAME OVER");
+    String cur_score = "Score: " + String(score);
+    printCenter(2, cur_score);
+    
+    delay(5000);
+    execute_CMD(0x08, 0, 2);  //loop backing track 4
+    lcd.clear();
+    printCenter(1, "Press START");
+    printCenter(2, "to try again");
+    
+    // Halt forever
+    while (true) {
+      drawFrame(3);
+      if (digitalRead(12) == LOW) 
+        softReset();
+    }
+  }
+}
+
+void softReset() {
+  void (*resetFunc)(void) = 0;
+  resetFunc();
 }
 
 void printCenter(int row, String text) {
