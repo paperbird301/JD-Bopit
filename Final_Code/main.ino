@@ -3,6 +3,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "frames.h"
+#include <Adafruit_NeoPixel.h>
 
 //audio
 #define Start_Byte 0x7E
@@ -17,23 +18,28 @@
 #define OLED_RESET -1
 #define SCREEN_ADDRESS 0x3C
 
-#define FRAME_DELAY 400
+#define FRAME_DELAY 200
 #define FRAME_WIDTH 64
 #define FRAME_HEIGHT 64
 
-int img = 0;  // 0=chalk, 1=rack, 2=stick, 3=win
+//strip leds
+#define STRIP_PIN 1
+#define NUM_PIXELS 55
+
+int img = 0;  // 0=chalk, 1=rack, 2=stick, 3=win, 4=lsoe
 unsigned long lastFrameTime = 0;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+Adafruit_NeoPixel strip(NUM_PIXELS, STRIP_PIN, NEO_GRB + NEO_KHZ800);
+
 //track game stuff
 int score = 0;
 int game_delay = 5000;
-bool challenge_mode;  // maybe if time
 bool start = false;
 bool lost = false;
-
+ 
 void setup() {
   Serial.begin(9600);
   delay(1000);
@@ -52,6 +58,10 @@ void setup() {
   }
   display.clearDisplay();
   display.display();
+
+  //led strip
+  strip.begin();
+  strip.show();
 
   //start button
   pinMode(A0, INPUT);
@@ -72,11 +82,13 @@ void setup() {
   lcd.init();
   lcd.backlight();
   lcd.clear();
+
+  printCenter(1, "Press Start");
 }
 
 void loop() {
   while (!start) {
-    printCenter(1, "Press Start");
+    rainbow_swirl();
     if (digitalRead(12) == LOW) {
       printCenter(2, "3");
       delay(700);
@@ -85,9 +97,14 @@ void loop() {
       printCenter(2, "1");
       delay(700);
       lcd.clear();
+      strip.clear();
+      strip.show();
       start = true;
     }
   }
+
+  strip.clear();
+  strip.show();
 
   if (score >= 99) {
     winScreen();
@@ -112,6 +129,8 @@ void loop() {
 
 void winScreen() {
   lcd.clear();
+  strip.clear();
+  strip.show();
   execute_CMD(0x03, 0, 1);  //play yippie
   printCenter(1, "YOU WIN!!!");
   String cur_score = "Score: " + String(score);
@@ -122,7 +141,7 @@ void winScreen() {
   lcd.clear();
   printCenter(1, "Press START");
   printCenter(2, "to reset");
-
+  win_led();
   // Halt forever
   while (true) {
     drawFrame(3);
@@ -134,6 +153,8 @@ void winScreen() {
 void losecheck() {
   if (lost == true) {
     lcd.clear();
+    strip.clear();
+    strip.show();
     execute_CMD(0x03, 0, 6);  //play lose audio
     printCenter(1, "GAME OVER");
     String cur_score = "Score: " + String(score);
@@ -144,10 +165,10 @@ void losecheck() {
     lcd.clear();
     printCenter(1, "Press START");
     printCenter(2, "to try again");
-    
+    lose_led();
     // Halt forever
     while (true) {
-      drawFrame(3);
+      drawLose();
       if (digitalRead(12) == LOW) 
         softReset();
     }
@@ -155,6 +176,11 @@ void losecheck() {
 }
 
 void softReset() {
+  strip.clear();
+  strip.show();
+  display.clearDisplay();
+  display.display();
+  delay(500);             // let everything settle before jumping
   void (*resetFunc)(void) = 0;
   resetFunc();
 }
@@ -213,4 +239,48 @@ bool drawFrame(int img) {
     return true;
   }
   return false;
+}
+bool drawLose() {
+  static int frame = 0;
+  static int lastImg = -1;
+  static unsigned long lastFrameTime = 0;
+
+  if (img != lastImg) {
+    frame = 0;
+    lastImg = img;
+  }
+
+  unsigned long now = millis();
+  if (now - lastFrameTime < FRAME_DELAY) return false;
+  lastFrameTime = now;
+
+  display.clearDisplay();
+  display.drawBitmap(32, 0, (const unsigned char*)pgm_read_ptr(&lose_frames[frame]), FRAME_WIDTH, FRAME_HEIGHT, WHITE);
+  display.display();
+
+  frame++;
+  if (frame >= 6) {
+    frame = 0;
+    return true;
+  }
+  return false;
+}
+void rainbow_swirl() {
+  strip.rainbow(0, 3, 255, 120, true);
+  strip.show();
+}
+void lose_led() {
+  strip.setBrightness(100);
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, 255, 0, 0);
+  }
+  strip.show();
+}
+
+void win_led() {
+  strip.setBrightness(100);
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, 0, 255, 0);
+  }
+  strip.show();
 }
